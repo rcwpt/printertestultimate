@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTIMATE PRINTER DIAGNOSTIC TOOL</title>
+    <style>
+        /* --- CONFIGURATION & RESET --- */
+        :root {
+            --bg-color: #2b2b2b;
+            --paper-color: #ffffff;
+            --accent-color: #00ff00; /* Hacker Green for UI */
+            --grid-color-major: #000000;
+            --grid-color-minor: #cccccc;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Console', monospace;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- UI CONTROLS (Screen Only) --- */
+        .ui-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #000;
+            color: var(--accent-color);
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .ui-btn {
+            background: #000;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            padding: 8px 16px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .ui-btn:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .page-indicator {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        /* --- PAPER SETUP (A4) --- */
+        .sheet {
+            width: 210mm;
+            height: 297mm;
+            background: var(--paper-color);
+            margin: 80px auto 20px auto; /* Margin top for UI */
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: none; /* Hidden by default, toggled via JS */
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+
+        .sheet.active {
+            display: block;
+        }
+
+        /* --- COMMON ELEMENTS --- */
+        .header-strip {
+            height: 15mm;
+            border-bottom: 2px solid #000;
+            padding: 0 10mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10pt;
+        }
+
+        .content-area {
+            padding: 10mm;
+            height: calc(297mm - 15mm); /* Total - Header */
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .corner-marker {
+            position: absolute;
+            width: 10mm;
+            height: 10mm;
+            border: 0 solid #000;
+            z-index: 10;
+        }
+        .tl { top: 0; left: 0; border-width: 0 2px 2px 0; } /* Inverted logic for inner container */
+        .tr { top: 0; right: 0; border-width: 0 0 2px 2px; }
+        .bl { bottom: 0; left: 0; border-width: 2px 2px 0 0; }
+        .br { bottom: 0; right: 0; border-width: 2px 0 0 2px; }
+
+        /* --- PAGE 1: OVERVIEW --- */
+        .color-bars {
+            display: flex;
+            height: 20mm;
+            width: 100%;
+            border: 2px solid #000;
+            margin-bottom: 5mm;
+        }
+        .cb { flex: 1; display: grid; place-items: center; font-size: 8pt; font-weight: bold; color: white; text-shadow: 1px 1px 0 #000; }
+        
+        /* --- PAGE 2: GRID (Rapat) --- */
+        .mm-grid {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            /* Pola Grid CSS Murni: Garis biru muda tiap 1mm, Garis hitam tiap 1cm */
+            background-image:
+                linear-gradient(rgba(0,0,0,0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.8) 1px, transparent 1px),
+                linear-gradient(rgba(0,100,255,0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,100,255,0.2) 1px, transparent 1px);
+            background-size: 
+                10mm 10mm, 
+                10mm 10mm, 
+                1mm 1mm, 
+                1mm 1mm;
+            background-position: -1px -1px; /* Align borders */
+            border: 2px solid black;
+        }
+        
+        .center-cross {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 40mm; height: 40mm;
+            transform: translate(-50%, -50%);
+        }
+        .center-cross::before { content:''; position:absolute; top:50%; left:0; width:100%; height:1px; background:red; }
+        .center-cross::after { content:''; position:absolute; left:50%; top:0; height:100%; width:1px; background:red; }
+
+        /* --- PAGE 3: COMPUTER TYPOGRAPHY --- */
+        .terminal-box {
+            background: #000;
+            color: #00ff00;
+            padding: 5mm;
+            font-family: 'Consolas', 'Courier New', monospace;
+            margin-bottom: 5mm;
+            border: 2px solid #000;
+        }
+        .font-scale { display: block; margin-bottom: 2mm; white-space: nowrap; overflow: hidden;}
+        
+        /* --- PAGE 4: GRADIENTS --- */
+        .gradient-test {
+            height: 30mm;
+            width: 100%;
+            margin-bottom: 5mm;
+            border: 1px solid #000;
+        }
+
+        /* --- PRINT MEDIA QUERIES --- */
+        @media print {
+            @page { margin: 0; size: A4; }
+            body { 
+                background: none; 
+                display: block; 
+                margin: 0;
+            }
+            .ui-panel { display: none !important; }
+            
+            /* Print Specific Logic */
+            .sheet {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always; /* Force new page */
+                display: block !important; /* Always show all pages to printer spooler unless filtered by JS */
+            }
+
+            /* This class is added by JS if we only want to print the current visible page */
+            body.print-single-mode .sheet { display: none !important; }
+            body.print-single-mode .sheet.active { display: block !important; }
+
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- UI Navigation -->
+    <div class="ui-panel">
+        <button class="ui-btn" onclick="prevPage()">&lt; PREV</button>
+        <div class="page-indicator">PAGE <span id="current-page-num">1</span> / 4</div>
+        <button class="ui-btn" onclick="nextPage()">NEXT &gt;</button>
+        <div style="width: 20px;"></div> <!-- Spacer -->
+        <button class="ui-btn" style="border-color: #fff; color: #fff;" onclick="printCurrent()">🖨️ PRINT CURRENT PAGE</button>
+        <button class="ui-btn" style="border-color: cyan; color: cyan;" onclick="printAll()">🖨️ PRINT ALL PAGES</button>
+    </div>
+
+    <!-- PAGE 1: GENERAL & COLOR -->
+    <div class="sheet active" id="p1">
+        <div class="header-strip">
+            <span>SYS_DIAG_TOOL_V2.0</span>
+            <span>DATE: <script>document.write(new Date().toLocaleDateString('en-US'))</script></span>
+            <span>[PAGE 01: COLOR_INK_CHECK]</span>
+        </div>
+        <div class="content-area">
+            <h2 style="text-align:center; border-bottom:4px double #000;">PRIMARY INK DENSITY</h2>
+            
+            <!-- CMYK -->
+            <div class="color-bars">
+                <div class="cb" style="background:#00FFFF; color:black;">C:100</div>
+                <div class="cb" style="background:#FF00FF;">M:100</div>
+                <div class="cb" style="background:#FFFF00; color:black;">Y:100</div>
+                <div class="cb" style="background:#000000;">K:100</div>
+            </div>
+            
+            <!-- RGB -->
+            <div class="color-bars">
+                <div class="cb" style="background:#FF0000;">R:255</div>
+                <div class="cb" style="background:#00FF00; color:black;">G:255</div>
+                <div class="cb" style="background:#0000FF;">B:255</div>
+            </div>
+
+            <div style="margin-top:20mm; border:1px dashed #000; padding:5mm;">
+                <h3>// NOZZLE_CHECK_PATTERN</h3>
+                <div style="display:flex; gap:2mm;">
+                    <!-- Simulasi pola nozzle -->
+                    <div style="flex:1; height:30mm; background: repeating-linear-gradient(45deg, #00FFFF 0, #00FFFF 1px, white 1px, white 4px);"></div>
+                    <div style="flex:1; height:30mm; background: repeating-linear-gradient(45deg, #FF00FF 0, #FF00FF 1px, white 1px, white 4px);"></div>
+                    <div style="flex:1; height:30mm; background: repeating-linear-gradient(45deg, #FFFF00 0, #FFFF00 1px, white 1px, white 4px);"></div>
+                    <div style="flex:1; height:30mm; background: repeating-linear-gradient(45deg, #000000 0, #000000 1px, white 1px, white 4px);"></div>
+                </div>
+            </div>
+
+            <!-- Alignment Markers Basic -->
+            <div class="corner-marker tl" style="top:10mm; left:10mm; border-color:black;"></div>
+            <div class="corner-marker tr" style="top:10mm; right:10mm; border-color:black;"></div>
+            <div class="corner-marker bl" style="bottom:10mm; left:10mm; border-color:black;"></div>
+            <div class="corner-marker br" style="bottom:10mm; right:10mm; border-color:black;"></div>
+        </div>
+    </div>
+
+    <!-- PAGE 2: GRID & GEOMETRY -->
+    <div class="sheet" id="p2">
+        <div class="header-strip">
+            <span>SYS_DIAG_TOOL_V2.0</span>
+            <span>PRECISION: 1.0mm</span>
+            <span>[PAGE 02: GEOMETRY_GRID]</span>
+        </div>
+        <div class="content-area" style="padding: 0;">
+            <!-- Full Grid -->
+            <div class="mm-grid">
+                <div class="center-cross"></div>
+                
+                <!-- Label Koordinat -->
+                <div style="position:absolute; top:5mm; left:5mm; background:white; padding:2px; font-size:8pt; border:1px solid black;">X:0 Y:0 (Top Left)</div>
+                <div style="position:absolute; bottom:5mm; right:5mm; background:white; padding:2px; font-size:8pt; border:1px solid black;">X:Max Y:Max (Btm Right)</div>
+                
+                <!-- Lingkaran Geometri -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:100mm; height:100mm; border:1px solid black; border-radius:50%;"></div>
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:150mm; height:150mm; border:1px solid black; border-radius:50%;"></div>
+
+                <!-- Diagonal Checks -->
+                <svg style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="black" stroke-width="0.5" />
+                    <line x1="100%" y1="0" x2="0" y2="100%" stroke="black" stroke-width="0.5" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 3: TYPOGRAPHY -->
+    <div class="sheet" id="p3">
+        <div class="header-strip">
+            <span>SYS_DIAG_TOOL_V2.0</span>
+            <span>FONT: MONOSPACE</span>
+            <span>[PAGE 03: TYPOGRAPHY_RENDER]</span>
+        </div>
+        <div class="content-area">
+            <h3>// FONT_SCALING_TEST_PROTOCOL</h3>
+            <p>Verifies character sharpness and legibility across various point sizes.</p>
+            
+            <div style="border-left: 2px solid #000; padding-left: 10px;">
+                <span class="font-scale" style="font-size: 6pt;">06pt: The quick brown fox jumps over the lazy dog. (Micro)</span>
+                <span class="font-scale" style="font-size: 8pt;">08pt: The quick brown fox jumps over the lazy dog. (Detail)</span>
+                <span class="font-scale" style="font-size: 10pt;">10pt: The quick brown fox jumps over the lazy dog. (Standard)</span>
+                <span class="font-scale" style="font-size: 12pt;">12pt: The quick brown fox jumps over the lazy dog. (Doc)</span>
+                <span class="font-scale" style="font-size: 14pt;">14pt: The quick brown fox jumps over the lazy dog. (Sub)</span>
+                <span class="font-scale" style="font-size: 18pt;">18pt: The quick brown fox jumps over the lazy dog. (H3)</span>
+                <span class="font-scale" style="font-size: 24pt;">24pt: SYSTEM_READY (H2)</span>
+                <span class="font-scale" style="font-size: 36pt; font-weight:bold;">36pt: A B C D E 1 2 3</span>
+                <span class="font-scale" style="font-size: 72pt; font-weight:bold;">72pt: OK</span>
+            </div>
+
+            <h3>// INVERSE_CONTRAST_TEST</h3>
+            <div class="terminal-box">
+                > INITIALIZING PRINT SPOOLER...<br>
+                > LOADING ADVANCED_DRIVER_V2.EXE...<br>
+                > CHECKING INK LEVELS... [OK]<br>
+                > Lorem ipsum dolor sit amet, consectetur adipiscing elit.<br>
+                > 01001000 01000101 01001100 01001100 01001111
+            </div>
+
+            <div style="display:flex; gap:10px; font-size:10pt;">
+                <div style="flex:1; border:1px solid #000; padding:5px;">
+                    <strong>Bold Text</strong><br>
+                    Normal Text<br>
+                    <i>Italic Text</i>
+                </div>
+                <div style="flex:1; border:1px solid #000; padding:5px; text-decoration: underline;">
+                    Underline Text
+                </div>
+                <div style="flex:1; border:1px solid #000; padding:5px; text-decoration: line-through;">
+                    Strikethrough
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 4: GRADIENTS & GRAPHICS -->
+    <div class="sheet" id="p4">
+        <div class="header-strip">
+            <span>SYS_DIAG_TOOL_V2.0</span>
+            <span>DITHERING_CHECK</span>
+            <span>[PAGE 04: GRAPHICS_RENDERING]</span>
+        </div>
+        <div class="content-area">
+            
+            <div class="label">GRADIENT_SMOOTHNESS_CHECK</div>
+            <!-- Black to White -->
+            <div class="gradient-test" style="background: linear-gradient(to right, black, white);"></div>
+            
+            <!-- Rainbow -->
+            <div class="gradient-test" style="background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);"></div>
+
+            <!-- CMY Fade -->
+            <div style="display: flex; gap: 10px; height: 40mm; margin-bottom: 5mm;">
+                <div style="flex:1; background: linear-gradient(to bottom, cyan, white); border:1px solid #ddd;"></div>
+                <div style="flex:1; background: linear-gradient(to bottom, magenta, white); border:1px solid #ddd;"></div>
+                <div style="flex:1; background: linear-gradient(to bottom, yellow, white); border:1px solid #ddd;"></div>
+                <div style="flex:1; background: linear-gradient(to bottom, black, white); border:1px solid #ddd;"></div>
+            </div>
+
+            <div class="label">RADIAL_AND_SHARPNESS</div>
+            <div style="display: flex; gap: 10px; height: 60mm;">
+                <!-- Sunburst -->
+                <div style="flex:1; border:1px solid black; background: repeating-conic-gradient(#000 0% 1%, #fff 1% 2%); border-radius: 50%;"></div>
+                
+                <!-- Fine Lines (Horizontal/Vertical) -->
+                <div style="flex:1; border:1px solid black; background: repeating-linear-gradient(to bottom, #000 0, #000 1px, #fff 1px, #fff 2px);"></div>
+                
+                <!-- Checkerboard -->
+                <div style="flex:1; border:1px solid black; background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0px;"></div>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center; border: 2px solid #000; padding: 10px;">
+                END OF DIAGNOSTIC SEQUENCE<br>
+                PLEASE VERIFY OUTPUT VISUALLY
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const totalPages = 4;
+
+        function updateDisplay() {
+            // Hide all
+            document.querySelectorAll('.sheet').forEach(el => el.classList.remove('active'));
+            // Show active
+            document.getElementById('p' + currentPage).classList.add('active');
+            // Update page num
+            document.getElementById('current-page-num').innerText = currentPage;
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateDisplay();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateDisplay();
+            }
+        }
+
+        function printCurrent() {
+            document.body.classList.add('print-single-mode');
+            window.print();
+            // Remove class after print dialog closes
+            setTimeout(() => {
+                document.body.classList.remove('print-single-mode');
+            }, 1000);
+        }
+
+        function printAll() {
+            document.body.classList.remove('print-single-mode');
+            window.print();
+        }
+    </script>
+</body>
+</html>
