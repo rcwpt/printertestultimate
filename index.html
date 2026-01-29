@@ -141,6 +141,41 @@
         .density-row { display: flex; height: 8mm; border: 1px solid #000; }
         .density-step { flex: 1; display: grid; place-items: center; font-size: 7pt; border-right: 1px solid rgba(0,0,0,0.2); }
 
+        /* Spectrum 2D Styling */
+        .spectrum-2d-container {
+            height: 35mm; /* Taller to show gradients clearly */
+            width: 100%;
+            border: 2px solid #000;
+            margin: 3mm 0;
+            position: relative;
+            /* Layer 1: Horizontal Rainbow (Hue) */
+            background: linear-gradient(to right, 
+                #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000
+            );
+        }
+        .spectrum-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            /* Layer 2: Vertical White -> Transparent -> Black */
+            background: linear-gradient(to bottom, 
+                white 0%, 
+                rgba(255,255,255,0) 50%, 
+                black 100%
+            );
+        }
+        .spectrum-label {
+            position: absolute;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            color: white;
+            text-shadow: 0 1px 2px black;
+            pointer-events: none; /* Let clicks pass through */
+        }
+
         /* --- PAGE 2: GRID --- */
         .mm-grid {
             width: 100%;
@@ -243,15 +278,32 @@
         <div class="content-area">
             <h2 style="text-align:center; border-bottom:2px solid #000; margin: 0 0 5mm 0;">PRIMARY INK SATURATION</h2>
             
-            <!-- 100% Bars -->
+            <!-- 100% CMYK Bars -->
             <div class="color-bars">
                 <div class="cb" style="background:#00FFFF; color:black;">CYAN 100%</div>
                 <div class="cb" style="background:#FF00FF;">MAGENTA 100%</div>
                 <div class="cb" style="background:#FFFF00; color:black;">YELLOW 100%</div>
                 <div class="cb" style="background:#000000;">KEY 100%</div>
             </div>
+
+            <!-- 100% RGB Bars (RESTORED) -->
+            <div class="color-bars">
+                <div class="cb" style="background:#FF0000;">RED 100%</div>
+                <div class="cb" style="background:#00FF00; color:black;">GREEN 100%</div>
+                <div class="cb" style="background:#0000FF;">BLUE 100%</div>
+            </div>
+
+            <!-- 2D Full Colour Spectrum (UPDATED AS REQUESTED) -->
+            <div style="margin-top: 2mm; margin-bottom: 2mm;">
+                <div style="font-size: 8pt; font-weight:bold; margin-bottom: 2px;">FULL SPECTRUM 2D MAP (TOP: WHITE, MID: SATURATED, BTM: BLACK)</div>
+                <div class="spectrum-2d-container">
+                    <div class="spectrum-overlay"></div>
+                    <!-- Label in center -->
+                    <div class="spectrum-label">RGB COLOR SPACE</div>
+                </div>
+            </div>
             
-            <div class="label" style="font-size: 9pt; font-weight: bold; margin-top: 5mm;">INK DENSITY STEP WEDGE (10% Increments)</div>
+            <div class="label" style="font-size: 9pt; font-weight: bold; margin-top: 3mm;">INK DENSITY STEP WEDGE (10% Increments)</div>
             <div class="density-chart">
                 <!-- Cyan Wedge -->
                 <div class="density-row">
@@ -309,13 +361,48 @@
                     <div class="density-step" style="background:rgba(0,0,0,0.9); color:white;">90%</div>
                     <div class="density-step" style="background:#000000; color:white; font-weight:bold;">100%</div>
                 </div>
-            </div>
-
-            <!-- RGB / Secondary -->
-            <div class="color-bars" style="margin-top: 5mm;">
-                <div class="cb" style="background:#FF0000;">RED</div>
-                <div class="cb" style="background:#00FF00; color:black;">GREEN</div>
-                <div class="cb" style="background:#0000FF;">BLUE</div>
+                <!-- Red Wedge -->
+                <div class="density-row">
+                    <div style="width:20mm; font-size:8pt; display:flex; align-items:center; padding-left:2mm; font-weight:bold;">RED</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.1)">10%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.2)">20%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.3)">30%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.4)">40%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.5)">50%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.6)">60%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.7)">70%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.8)">80%</div>
+                    <div class="density-step" style="background:rgba(255,0,0,0.9)">90%</div>
+                    <div class="density-step" style="background:#FF0000; color:white; font-weight:bold;">100%</div>
+                </div>
+                <!-- Green Wedge -->
+                <div class="density-row">
+                    <div style="width:20mm; font-size:8pt; display:flex; align-items:center; padding-left:2mm; font-weight:bold;">GREEN</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.1)">10%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.2)">20%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.3)">30%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.4)">40%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.5)">50%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.6)">60%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.7)">70%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.8)">80%</div>
+                    <div class="density-step" style="background:rgba(0,255,0,0.9)">90%</div>
+                    <div class="density-step" style="background:#00FF00; font-weight:bold;">100%</div>
+                </div>
+                <!-- Blue Wedge -->
+                <div class="density-row">
+                    <div style="width:20mm; font-size:8pt; display:flex; align-items:center; padding-left:2mm; font-weight:bold;">BLUE</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.1)">10%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.2)">20%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.3)">30%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.4)">40%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.5); color:white;">50%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.6); color:white;">60%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.7); color:white;">70%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.8); color:white;">80%</div>
+                    <div class="density-step" style="background:rgba(0,0,255,0.9); color:white;">90%</div>
+                    <div class="density-step" style="background:#0000FF; color:white; font-weight:bold;">100%</div>
+                </div>
             </div>
 
             <!-- Extended Nozzle Check (Filling Bottom) -->
