@@ -266,6 +266,10 @@
         <div style="width: 20px;"></div>
         <button class="ui-btn" style="border-color: #fff; color: #fff;" onclick="printCurrent()">🖨️ PRINT PAGE</button>
         <button class="ui-btn" style="border-color: cyan; color: cyan;" onclick="printAll()">🖨️ PRINT ALL</button>
+        <a href="https://www.instagram.com/c.wijaya.t" target="_blank" class="author-watermark" style="margin-left: auto; color: #ff69b4; text-decoration: none; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px dashed #ff69b4; border-radius: 4px;">
+            <span>❤️ Created with love by rcwpt</span>
+            <span style="color: #00ffcc;">(@c.wijaya.t)</span>
+        </a>
     </div>
 
     <!-- PAGE 1: INK DENSITY -->
@@ -597,6 +601,21 @@
             document.body.classList.remove('print-single-mode');
             window.print();
         }
+
+        // Support direct page navigation and auto-print query parameters (?page=1&autoprint=1)
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const p = parseInt(params.get('page'));
+            if (p >= 1 && p <= totalPages) {
+                currentPage = p;
+                updateDisplay();
+            }
+            if (params.get('autoprint') === '1' || params.get('print') === '1') {
+                setTimeout(() => {
+                    printCurrent();
+                }, 800);
+            }
+        });
     </script>
 </body>
 </html>
